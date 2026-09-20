@@ -1,3 +1,8 @@
-/bin
-/asm
-/obj
+compiler/bin
+compiler/asm
+compiler/obj
+atv*/*.o
+atv*/expr1
+atv*/expr2
+atv*/expr3
+atv*/modelo
