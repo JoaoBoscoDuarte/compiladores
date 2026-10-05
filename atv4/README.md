@@ -1,36 +1,44 @@
 # Atividade 4 - EC1: Análise Léxica e Sintática
 
-Entrega desta atividade: o analisador léxico, sintático e o interpretador
-da linguagem EC1 (`bin/ec1`), em [`../compiler`](../compiler). Enunciado em
-`docs/`.
+Analisador léxico, sintático (descendente recursivo) e interpretador para a
+linguagem EC1 (expressões aritméticas constantes entre parênteses).
+Enunciado em `docs/`.
 
 ## Compilar
 
+### Via Makefile
+
 ```sh
-cd ../compiler && make
+make
 ```
 
-Gera `compiler/bin/ec1` (e também `compiler/bin/compilerci`, da atividade 2).
+- Gera o binário em `bin/ec1`.
+- `make clean` remove `bin/` e `obj/`.
+
+### Manual via `g++`
+
+```sh
+mkdir -p bin && g++ -Wall -Wextra -std=c++17 -Iinclude src/*.cpp -o bin/ec1
+```
 
 ## Executar para um arquivo de entrada
 
 ```sh
-cd ../compiler && ./bin/ec1 tests/ec1_valid2.ec1
+./bin/ec1 tests/valid2.ec1
 ```
 
-Imprime a sequência de tokens, a árvore sintática e o valor da expressão
-avaliada (interpretador). Erro léxico ou sintático reporta a posição do
-erro e encerra com código de saída 1.
+Imprime, em sequência: os tokens da análise léxica, a árvore sintática e o
+valor da expressão interpretada. Erro léxico ou sintático reporta a posição
+do erro e encerra com código de saída 1.
 
 ## Executar os testes
 
 ```sh
-cd ../compiler && ./tests/run_ec1_tests.sh
+./tests/run_tests.sh
 ```
 
-Os casos estão em `compiler/tests/ec1_*.ec1`: dois programas válidos
-(`ec1_valid1.ec1`, `ec1_valid2.ec1`) e dois com erro
-(`ec1_invalid_lexico.ec1`, `ec1_invalid_sintatico.ec1`).
+Casos em `tests/`: `valid1.ec1` e `valid2.ec1` são válidos;
+`invalid_lexico.ec1` e `invalid_sintatico.ec1` devem falhar.
 
 ## Grupo
 - GUILHERME URTIGA LOPES SILVA

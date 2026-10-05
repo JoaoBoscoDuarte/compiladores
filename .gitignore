@@ -1,9 +1,11 @@
 compiler/bin
-compiler/asm
 compiler/obj
+compiler/asm
 atv2/bin
-atv2/asm
 atv2/obj
+atv2/asm
+atv4/bin
+atv4/obj
 atv3/asm/*.o
 atv3/asm/expr1
 atv3/asm/expr2
