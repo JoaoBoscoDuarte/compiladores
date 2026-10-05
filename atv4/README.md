@@ -40,6 +40,15 @@ do erro e encerra com código de saída 1.
 Casos em `tests/`: `valid1.ec1` e `valid2.ec1` são válidos;
 `invalid_lexico.ec1` e `invalid_sintatico.ec1` devem falhar.
 
+Os mesmos 4 casos também têm uma versão em
+[cram](https://bitheap.org/cram/) (`tests/ec1.t`), comparando a saída
+completa (tokens, árvore e resultado) do `ec1`, não só o valor final:
+
+```sh
+pip install --user cram   # uma vez
+python3 -m cram tests/ec1.t
+```
+
 ## Grupo
 - GUILHERME URTIGA LOPES SILVA
 - JOÃO BOSCO DUARTE FILHO
