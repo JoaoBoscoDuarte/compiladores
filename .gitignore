@@ -4,9 +4,9 @@ compiler/obj
 atv2/bin
 atv2/asm
 atv2/obj
-atv*/*.o
-atv*/expr1
-atv*/expr2
-atv*/expr3
-atv*/modelo
+atv3/asm/*.o
+atv3/asm/expr1
+atv3/asm/expr2
+atv3/asm/expr3
+atv3/asm/modelo
 .serena/

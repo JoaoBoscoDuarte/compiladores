@@ -1,13 +1,14 @@
 # Atividade 3 - Expressões Aritméticas em Assembly
 
-Enunciado em `docs/`. Parte 1: um arquivo `.s` por expressão (`expr1.s`,
-`expr2.s`, `expr3.s`), baseado no modelo `modelo.s`, cada um calculando o
-resultado em `%rax` e imprimindo com `imprime_num`. Parte 2: respostas em
-[`respostas.md`](respostas.md).
+Parte 1: um arquivo `.s` por expressão em `asm/` (`expr1.s`, `expr2.s`,
+`expr3.s`), baseado no modelo `asm/modelo.s`, cada um calculando o
+resultado em `%rax` e imprimindo com `imprime_num` (de `asm/runtime.s`).
+Parte 2: respostas em [`respostas.md`](respostas.md).
 
 ## Compilar (montar + linkar)
 
 ```sh
+cd asm
 as --64 -o expr1.o expr1.s && ld -o expr1 expr1.o
 as --64 -o expr2.o expr2.s && ld -o expr2 expr2.o
 as --64 -o expr3.o expr3.s && ld -o expr3 expr3.o
