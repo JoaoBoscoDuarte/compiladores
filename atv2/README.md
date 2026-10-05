@@ -1,29 +1,47 @@
 # Atividade 2 - Compilador CI
+> x86-64 / Linux
 
-Entrega desta atividade: o compilador para a linguagem CI, em
-[`../compiler`](../compiler). Enunciado em `docs/`.
+Compilador simples: lê um arquivo `.ci` contendo um número, valida e gera o
+assembly x86-64 correspondente (`.s`). Enunciado em `docs/`.
 
-## Compilar
+## Compilar o compilador
+
+### Via Makefile
 
 ```sh
-cd ../compiler && make
+make
 ```
 
-Gera o binário em `compiler/bin/compilerci`.
+- Gera o binário em `bin/compilerci`.
+- `make clean` remove `bin/` e `obj/`.
+
+### Manual via `g++`
+
+```sh
+mkdir -p bin && g++ -Wall -Wextra -std=c++17 -Iinclude src/*.cpp -o bin/compilerci
+```
 
 ## Executar para um arquivo de entrada
 
 ```sh
-cd ../compiler && ./bin/compilerci tests/valid1.ci
+./bin/compilerci tests/valid1.ci
 ```
 
-Gera o `.s` em `compiler/asm/`. Ver [`../compiler/README.md`](../compiler/README.md)
-para montar/linkar o `.s` gerado.
+- Gera o `.s` de saída em `asm/<nome>.s` (ex: `asm/valid1.s`).
+- Para montar e linkar, execute `as`/`ld` a partir da raiz deste diretório
+  (`atv2/`) — o `.s` inclui `x86-64-linux/runtime.s` com caminho relativo
+  à raiz, não à pasta `asm/`:
+  ```sh
+  as --64 -o asm/valid1.o asm/valid1.s && ld -o asm/valid1 asm/valid1.o
+  ```
 
 ## Executar os testes
 
+Os casos de teste estão em `tests/` (`valid1.ci` é válido, `invalid1.ci` e
+`invalid2.ci` devem falhar na validação):
+
 ```sh
-cd ../compiler && for f in tests/*.ci; do ./bin/compilerci "$f"; done
+for f in tests/*.ci; do ./bin/compilerci "$f"; done
 ```
 
 ## Grupo
