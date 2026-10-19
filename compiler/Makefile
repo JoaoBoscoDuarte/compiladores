@@ -9,7 +9,7 @@ CI_TARGET := $(BIN_DIR)/compilerci
 CI_OBJS := $(OBJ_DIR)/compilerci.o $(OBJ_DIR)/parser.o $(OBJ_DIR)/codegen.o
 
 EC1_TARGET := $(BIN_DIR)/ec1
-EC1_OBJS := $(OBJ_DIR)/ec1.o $(OBJ_DIR)/ec1_lexer.o $(OBJ_DIR)/ec1_parser.o
+EC1_OBJS := $(OBJ_DIR)/ec1.o $(OBJ_DIR)/ec1_lexer.o $(OBJ_DIR)/ec1_parser.o $(OBJ_DIR)/ec1_codegen.o
 
 .PHONY: all clean
 

@@ -1,21 +1,20 @@
-#ifndef EC1_CODEGEN_HPP
-#define EC1_CODEGEN_HPP
+#ifndef EC1_PARSER_HPP
+#define EC1_PARSER_HPP
 
-#include <ostream>
-#include <string>
+#include <memory>
+#include <vector>
 #include "ec1_ast.hpp"
+#include "ec1_lexer.hpp"
 
-// Emits the x86-64 (AT&T syntax) code for an expression. The generated code
-// leaves the value in %rax and leaves the stack exactly as it found it.
-void generate_expression_code(const Exp& exp, std::ostream& out);
+// Syntax error: token found doesn't fit the grammar at that point.
+struct SyntaxError {
+    size_t posicao;
+    std::string mensagem;
+};
 
-// Emits the complete assembly file (header, _start, expression code,
-// calls to imprime_num/sair and the runtime include).
-void generate_program(const Exp& tree, std::ostream& out);
-
-// Writes the complete assembly to "asm/<input base name>.s".
-// Returns true on success and sets output_path.
-bool generate_assembly_file(const std::string& input_file_path, const Exp& tree,
-                            std::string& output_path);
+// Recursive-descent parser for <expressao> ::= <num> | '(' <exp> <op> <exp> ')'.
+// Consumes the whole token stream; returns true on success (tree filled in)
+// or false on the first syntax error (error filled in instead).
+bool parse(const std::vector<Token>& tokens, std::unique_ptr<Exp>& tree, SyntaxError& error);
 
 #endif
