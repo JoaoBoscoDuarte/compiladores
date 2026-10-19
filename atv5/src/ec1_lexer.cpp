@@ -1,105 +1,61 @@
-#include "ec1_parser.hpp"
-#include <stdexcept>
+#include "ec1_lexer.hpp"
+#include <cctype>
 
-namespace {
-
-// Thrown internally to unwind back to parse() on the first syntax error;
-// kept private to this file.
-struct ParseFailure {
-    SyntaxError error;
-};
-
-class Parser {
-public:
-    explicit Parser(const std::vector<Token>& tokens) : tokens_(tokens) {}
-
-    std::unique_ptr<Exp> parse_programa() {
-        if (pos_ >= tokens_.size()) {
-            fail(source_end_pos(), "entrada vazia, esperava uma expressao");
-        }
-        std::unique_ptr<Exp> exp = parse_expressao();
-        if (pos_ != tokens_.size()) {
-            fail(tokens_[pos_].posicao, "token inesperado apos o fim da expressao");
-        }
-        return exp;
+std::string token_type_name(TokenType tipo) {
+    switch (tipo) {
+        case TokenType::Numero:   return "Numero";
+        case TokenType::ParenEsq: return "ParenEsq";
+        case TokenType::ParenDir: return "ParenDir";
+        case TokenType::Soma:     return "Soma";
+        case TokenType::Sub:      return "Sub";
+        case TokenType::Mult:     return "Mult";
+        case TokenType::Div:      return "Div";
     }
+    return "?";
+}
 
-private:
-    const std::vector<Token>& tokens_;
-    size_t pos_ = 0;
+// true for the whitespace characters we skip between tokens (space, tab,
+// newline, carriage return).
+static bool is_space(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
 
-    bool at_end() const { return pos_ >= tokens_.size(); }
+bool tokenize(const std::string& source, std::vector<Token>& tokens, LexError& error) {
+    size_t i = 0;
+    const size_t n = source.size();
 
-    [[noreturn]] void fail(size_t posicao, const std::string& mensagem) {
-        throw ParseFailure{{posicao, mensagem}};
-    }
+    while (i < n) {
+        char c = source[i];
 
-    size_t source_end_pos() const {
-        return tokens_.empty() ? 0 : tokens_.back().posicao + tokens_.back().lexema.size();
-    }
-
-    // <expressao> ::= <num> | '(' <exp> <op> <exp> ')'
-    std::unique_ptr<Exp> parse_expressao() {
-        if (at_end()) {
-            fail(source_end_pos(), "esperava um numero ou '(', entrada terminou");
+        if (is_space(c)) {
+            i++;
+            continue;
         }
-        const Token& tok = tokens_[pos_];
 
-        if (tok.tipo == TokenType::Numero) {
-            pos_++;
-            try {
-                return std::make_unique<Const>(std::stoll(tok.lexema));
-            } catch (const std::out_of_range&) {
-                fail(tok.posicao, "constante '" + tok.lexema + "' fora do intervalo de 64 bits");
+        if (std::isdigit(static_cast<unsigned char>(c))) {
+            size_t start = i;
+            while (i < n && std::isdigit(static_cast<unsigned char>(source[i]))) {
+                i++;
             }
+            tokens.push_back({TokenType::Numero, source.substr(start, i - start), start});
+            continue;
         }
 
-        if (tok.tipo == TokenType::ParenEsq) {
-            pos_++;
-            std::unique_ptr<Exp> esq = parse_expressao();
-            char op = parse_operador();
-            std::unique_ptr<Exp> dir = parse_expressao();
-            expect(TokenType::ParenDir, "esperava ')'");
-            return std::make_unique<OpBin>(op, std::move(esq), std::move(dir));
-        }
-
-        fail(tok.posicao, "esperava um numero ou '(', encontrado '" + tok.lexema + "'");
-    }
-
-    // <op> ::= '+' | '-' | '*' | '/'
-    char parse_operador() {
-        if (at_end()) {
-            fail(source_end_pos(), "esperava um operador, entrada terminou");
-        }
-        const Token& tok = tokens_[pos_];
-        switch (tok.tipo) {
-            case TokenType::Soma: pos_++; return '+';
-            case TokenType::Sub:  pos_++; return '-';
-            case TokenType::Mult: pos_++; return '*';
-            case TokenType::Div:  pos_++; return '/';
+        TokenType tipo;
+        switch (c) {
+            case '(': tipo = TokenType::ParenEsq; break;
+            case ')': tipo = TokenType::ParenDir; break;
+            case '+': tipo = TokenType::Soma; break;
+            case '-': tipo = TokenType::Sub; break;
+            case '*': tipo = TokenType::Mult; break;
+            case '/': tipo = TokenType::Div; break;
             default:
-                fail(tok.posicao, "esperava um operador, encontrado '" + tok.lexema + "'");
+                error = {i, c};
+                return false;
         }
+        tokens.push_back({tipo, std::string(1, c), i});
+        i++;
     }
 
-    void expect(TokenType tipo, const std::string& mensagem) {
-        if (at_end() || tokens_[pos_].tipo != tipo) {
-            size_t posicao = at_end() ? source_end_pos() : tokens_[pos_].posicao;
-            fail(posicao, mensagem);
-        }
-        pos_++;
-    }
-};
-
-} // namespace
-
-bool parse(const std::vector<Token>& tokens, std::unique_ptr<Exp>& tree, SyntaxError& error) {
-    try {
-        Parser parser(tokens);
-        tree = parser.parse_programa();
-        return true;
-    } catch (const ParseFailure& failure) {
-        error = failure.error;
-        return false;
-    }
+    return true;
 }

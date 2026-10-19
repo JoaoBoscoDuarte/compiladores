@@ -1,85 +1,105 @@
-#include "ec1_codegen.hpp"
+#include "ec1_parser.hpp"
+#include <stdexcept>
 
-#include <filesystem>
-#include <fstream>
-#include <iostream>
+namespace {
 
-// Template for each kind of tree node (the result always ends up in %rax):
-//
-//   Const:  mov $<valor>, %rax
-//
-//   OpBin:  <codigo do operando esquerdo>
-//           push %rax                 # guarda o esquerdo na pilha
-//           <codigo do operando direito>
-//           mov %rax, %rbx            # direito em RBX
-//           pop %rax                  # esquerdo em RAX
-//           <op> %rbx, %rax           # RAX = esquerdo <op> direito
-//
-// Left-then-right evaluation with the right operand in RBX keeps the operand
-// order correct for '-' and '/'. Every push has a matching pop, so the stack
-// is unchanged after any expression, and only RAX/RBX (and RDX for '/') are used.
-void generate_expression_code(const Exp& exp, std::ostream& out) {
-    if (const Const* c = dynamic_cast<const Const*>(&exp)) {
-        out << "    mov $" << c->valor << ", %rax\n";
-        return;
+// Thrown internally to unwind back to parse() on the first syntax error;
+// kept private to this file.
+struct ParseFailure {
+    SyntaxError error;
+};
+
+class Parser {
+public:
+    explicit Parser(const std::vector<Token>& tokens) : tokens_(tokens) {}
+
+    std::unique_ptr<Exp> parse_programa() {
+        if (pos_ >= tokens_.size()) {
+            fail(source_end_pos(), "entrada vazia, esperava uma expressao");
+        }
+        std::unique_ptr<Exp> exp = parse_expressao();
+        if (pos_ != tokens_.size()) {
+            fail(tokens_[pos_].posicao, "token inesperado apos o fim da expressao");
+        }
+        return exp;
     }
 
-    const OpBin* bin = dynamic_cast<const OpBin*>(&exp);
-    if (bin == nullptr) {
-        return; // unreachable: Const and OpBin are the only node kinds
+private:
+    const std::vector<Token>& tokens_;
+    size_t pos_ = 0;
+
+    bool at_end() const { return pos_ >= tokens_.size(); }
+
+    [[noreturn]] void fail(size_t posicao, const std::string& mensagem) {
+        throw ParseFailure{{posicao, mensagem}};
     }
 
-    generate_expression_code(*bin->esq, out);
-    out << "    push %rax\n";
-    generate_expression_code(*bin->dir, out);
-    out << "    mov %rax, %rbx\n";
-    out << "    pop %rax\n";
-
-    switch (bin->op) {
-        case '+': out << "    add %rbx, %rax\n"; break;
-        case '-': out << "    sub %rbx, %rax\n"; break;
-        case '*': out << "    imul %rbx, %rax\n"; break;
-        case '/':
-            // idiv divides RDX:RAX by the operand; cqo sign-extends RAX into RDX.
-            out << "    cqo\n";
-            out << "    idiv %rbx\n";
-            break;
+    size_t source_end_pos() const {
+        return tokens_.empty() ? 0 : tokens_.back().posicao + tokens_.back().lexema.size();
     }
-}
 
-void generate_program(const Exp& tree, std::ostream& out) {
-    out << "#\n";
-    out << "# modelo de saida para o compilador\n";
-    out << "#\n";
-    out << ".section .text\n";
-    out << ".globl _start\n";
-    out << "_start:\n";
-    out << "    # expressao: " << tree.to_string() << "\n";
-    generate_expression_code(tree, out);
-    out << "    call imprime_num\n";
-    out << "    call sair\n";
-    out << ".include \"x86-64-linux/runtime.s\"\n";
-}
+    // <expressao> ::= <num> | '(' <exp> <op> <exp> ')'
+    std::unique_ptr<Exp> parse_expressao() {
+        if (at_end()) {
+            fail(source_end_pos(), "esperava um numero ou '(', entrada terminou");
+        }
+        const Token& tok = tokens_[pos_];
 
-bool generate_assembly_file(const std::string& input_file_path, const Exp& tree,
-                            std::string& output_path) {
-    // Same convention as compilerci: every .s goes to "asm/", named after the
-    // input file with the extension swapped to .s.
-    static const std::string output_dir = "asm";
-    std::filesystem::create_directories(output_dir);
+        if (tok.tipo == TokenType::Numero) {
+            pos_++;
+            try {
+                return std::make_unique<Const>(std::stoll(tok.lexema));
+            } catch (const std::out_of_range&) {
+                fail(tok.posicao, "constante '" + tok.lexema + "' fora do intervalo de 64 bits");
+            }
+        }
 
-    std::string base_name = std::filesystem::path(input_file_path).filename().string();
-    size_t last_dot = base_name.find_last_of('.');
-    if (last_dot != std::string::npos) {
-        base_name = base_name.substr(0, last_dot);
+        if (tok.tipo == TokenType::ParenEsq) {
+            pos_++;
+            std::unique_ptr<Exp> esq = parse_expressao();
+            char op = parse_operador();
+            std::unique_ptr<Exp> dir = parse_expressao();
+            expect(TokenType::ParenDir, "esperava ')'");
+            return std::make_unique<OpBin>(op, std::move(esq), std::move(dir));
+        }
+
+        fail(tok.posicao, "esperava um numero ou '(', encontrado '" + tok.lexema + "'");
     }
-    output_path = output_dir + "/" + base_name + ".s";
 
-    std::ofstream out(output_path);
-    if (!out.is_open()) {
-        std::cerr << "Error: Could not create output file " << output_path << std::endl;
+    // <op> ::= '+' | '-' | '*' | '/'
+    char parse_operador() {
+        if (at_end()) {
+            fail(source_end_pos(), "esperava um operador, entrada terminou");
+        }
+        const Token& tok = tokens_[pos_];
+        switch (tok.tipo) {
+            case TokenType::Soma: pos_++; return '+';
+            case TokenType::Sub:  pos_++; return '-';
+            case TokenType::Mult: pos_++; return '*';
+            case TokenType::Div:  pos_++; return '/';
+            default:
+                fail(tok.posicao, "esperava um operador, encontrado '" + tok.lexema + "'");
+        }
+    }
+
+    void expect(TokenType tipo, const std::string& mensagem) {
+        if (at_end() || tokens_[pos_].tipo != tipo) {
+            size_t posicao = at_end() ? source_end_pos() : tokens_[pos_].posicao;
+            fail(posicao, mensagem);
+        }
+        pos_++;
+    }
+};
+
+} // namespace
+
+bool parse(const std::vector<Token>& tokens, std::unique_ptr<Exp>& tree, SyntaxError& error) {
+    try {
+        Parser parser(tokens);
+        tree = parser.parse_programa();
+        return true;
+    } catch (const ParseFailure& failure) {
+        error = failure.error;
         return false;
     }
-    generate_program(tree, out);
-    return true;
 }

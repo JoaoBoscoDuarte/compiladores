@@ -6,6 +6,9 @@ atv2/obj
 atv2/asm
 atv4/bin
 atv4/obj
+atv5/bin
+atv5/obj
+atv5/asm
 atv3/asm/*.o
 atv3/asm/expr1
 atv3/asm/expr2
