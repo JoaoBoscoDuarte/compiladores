@@ -5,18 +5,12 @@ SRC_DIR := src
 BIN_DIR := bin
 OBJ_DIR := obj
 
-CI_TARGET := $(BIN_DIR)/compilerci
-CI_OBJS := $(OBJ_DIR)/compilerci.o $(OBJ_DIR)/parser.o $(OBJ_DIR)/codegen.o
-
 EC1_TARGET := $(BIN_DIR)/ec1
 EC1_OBJS := $(OBJ_DIR)/ec1.o $(OBJ_DIR)/ec1_lexer.o $(OBJ_DIR)/ec1_parser.o $(OBJ_DIR)/ec1_codegen.o
 
 .PHONY: all clean
 
-all: $(CI_TARGET) $(EC1_TARGET)
-
-$(CI_TARGET): $(CI_OBJS) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(CI_OBJS) -o $(CI_TARGET)
+all: $(EC1_TARGET)
 
 $(EC1_TARGET): $(EC1_OBJS) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $(EC1_OBJS) -o $(EC1_TARGET)
