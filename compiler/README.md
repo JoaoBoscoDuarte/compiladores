@@ -2,15 +2,11 @@
 > x86-64 / Linux
 
 Compilador da disciplina, construído incrementalmente a cada atividade.
-Dois programas:
+`ec1` (Atividades 4 e 5) — linguagem EC1 (expressões aritméticas
+constantes entre parênteses), completo: análise léxica, análise sintática
+(árvore), interpretação e geração de assembly x86-64.
 
-- `compilerci` (Atividade 2) — linguagem CI (uma constante inteira), gera
-  assembly x86-64.
-- `ec1` (Atividades 4 e 5) — linguagem EC1 (expressões aritméticas
-  constantes entre parênteses), completo: análise léxica, análise sintática
-  (árvore), interpretação e geração de assembly x86-64.
-
-A geração de código do `ec1` usa a pilha do sistema: o operando esquerdo é
+A geração de código usa a pilha do sistema: o operando esquerdo é
 calculado e empilhado (`push %rax`), o direito é calculado e movido para
 `%rbx`, o esquerdo é desempilhado para `%rax` e a operação é feita (`add`,
 `sub`, `imul`, ou `cqo` + `idiv`). Só `%rax`, `%rbx` (e `%rdx` na divisão)
@@ -25,34 +21,17 @@ expressões de qualquer tamanho.
 make
 ```
 
-- Gera `bin/compilerci` e `bin/ec1`.
+- Gera `bin/ec1`.
 - `make clean` remove `bin/` e `obj/`.
 
 ### Manual via `g++`
 
 ```sh
 mkdir -p bin
-g++ -Wall -Wextra -std=c++17 -Iinclude src/compilerci.cpp src/parser.cpp src/codegen.cpp -o bin/compilerci
 g++ -Wall -Wextra -std=c++17 -Iinclude src/ec1.cpp src/ec1_lexer.cpp src/ec1_parser.cpp src/ec1_codegen.cpp -o bin/ec1
 ```
 
 ## Executar
-
-### compilerci (linguagem CI)
-
-```sh
-./bin/compilerci tests/valid1.ci
-```
-
-- Gera o `.s` de saída em `asm/<nome>.s` (ex: `asm/valid1.s`).
-- Para montar e linkar, execute `as`/`ld` a partir da raiz deste diretório
-  (`compiler/`) — o `.s` inclui `x86-64-linux/runtime.s` com caminho
-  relativo à raiz, não à pasta `asm/`:
-  ```sh
-  as --64 -o asm/valid1.o asm/valid1.s && ld -o asm/valid1 asm/valid1.o
-  ```
-
-### ec1 (linguagem EC1)
 
 ```sh
 ./bin/ec1 [--tokens] [--tree] [--eval] [--asm] <arquivo.ec1>
@@ -78,10 +57,7 @@ as --64 -o asm/ec1_valid2.o asm/ec1_valid2.s && ld -o asm/ec1_valid2 asm/ec1_val
 ## Executar os testes
 
 ```sh
-# compilerci: valid1.ci é válido, invalid1.ci e invalid2.ci devem falhar
-for f in tests/*.ci; do ./bin/compilerci "$f"; done
-
-# ec1: compila, monta, roda e compara com o interpretador (requer as/ld)
+# compila, monta, roda e compara com o interpretador (requer as/ld)
 ./tests/run_ec1_tests.sh
 ```
 
