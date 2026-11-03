@@ -8,3 +8,4 @@ pasta `atvN/` contém apenas o necessário para a entrega daquela atividade.
 - [`atv3/`](atv3) — Atividade 3: expressões aritméticas em assembly.
 - [`atv4/`](atv4) — Atividade 4: léxico/sintático/interpretador de EC1 (código em `compiler/`).
 - [`atv5/`](atv5) — Atividade 5: compilador EC1 completo com geração de código (autocontido).
+- [`atv6/`](atv6) — Atividade 6: EC2, precedência e associatividade sem parênteses obrigatórios (autocontido).
