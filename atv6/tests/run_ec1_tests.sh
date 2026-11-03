@@ -94,9 +94,12 @@ while [ $i -lt 30 ]; do
         op = substr("+-*/", r + 1, 1)
         return "(" gen(d - 1) " " op " " gen(d - 1) ")"
     }' > "$OUT/ec1_rand$i.ec1"
-    expected="$("$BIN" --eval "$OUT/ec1_rand$i.ec1" 2>/dev/null | tail -1)"
-    if [ -z "$expected" ] || [ "$("$BIN" --eval "$OUT/ec1_rand$i.ec1" 2>&1 >/dev/null)" ]; then
-        # division by zero in the generated program: skip this sample
+    eval_out="$("$BIN" --eval "$OUT/ec1_rand$i.ec1" 2>/dev/null)"
+    eval_status=$?
+    expected="$(printf '%s\n' "$eval_out" | tail -1)"
+    if [ $eval_status -ne 0 ]; then
+        # division by zero in the generated program (interpreter crashes with
+        # SIGFPE, no stderr output): skip this sample
         i=$((i + 1)); continue
     fi
     check_valid "$OUT/ec1_rand$i.ec1" "$expected"
