@@ -1,12 +1,14 @@
-#include "ec1_codegen.hpp"
+#include "ev_codegen.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <unordered_set>
 
 // Template for each kind of tree node (the result always ends up in %rax):
 //
 //   Const:  mov $<valor>, %rax
+//   VarRef: mov <nome>, %rax         # leaf, reads straight from .bss
 //
 //   OpBin:  <codigo do operando esquerdo>
 //           push %rax                 # guarda o esquerdo na pilha
@@ -24,9 +26,14 @@ void generate_expression_code(const Exp& exp, std::ostream& out) {
         return;
     }
 
+    if (const VarRef* ref = dynamic_cast<const VarRef*>(&exp)) {
+        out << "    mov " << ref->nome << ", %rax\n";
+        return;
+    }
+
     const OpBin* bin = dynamic_cast<const OpBin*>(&exp);
     if (bin == nullptr) {
-        return; // unreachable: Const and OpBin are the only node kinds
+        return; // unreachable: Const, VarRef and OpBin are the only node kinds
     }
 
     generate_expression_code(*bin->esq, out);
@@ -47,24 +54,44 @@ void generate_expression_code(const Exp& exp, std::ostream& out) {
     }
 }
 
-void generate_program(const Exp& tree, std::ostream& out) {
+void generate_program(const Programa& programa, std::ostream& out) {
     out << "#\n";
     out << "# modelo de saida para o compilador\n";
     out << "#\n";
-    out << ".section .text\n";
+
+    // One .lcomm per declared variable (8 bytes, a 64-bit integer), in
+    // declaration order; a name declared more than once only reserves the
+    // space once.
+    out << ".section .bss\n";
+    std::unordered_set<std::string> ja_declaradas;
+    for (const Decl& decl : programa.declaracoes) {
+        if (ja_declaradas.insert(decl.nome).second) {
+            out << "    .lcomm " << decl.nome << ", 8\n";
+        }
+    }
+
+    out << "\n.section .text\n";
     out << ".globl _start\n";
     out << "_start:\n";
-    out << "    # expressao: " << tree.to_string() << "\n";
-    generate_expression_code(tree, out);
+
+    for (const Decl& decl : programa.declaracoes) {
+        out << "    # " << decl.nome << " = " << decl.exp->to_string() << ";\n";
+        generate_expression_code(*decl.exp, out);
+        out << "    mov %rax, " << decl.nome << "\n";
+    }
+
+    out << "    # = " << programa.exp_final->to_string() << "\n";
+    generate_expression_code(*programa.exp_final, out);
+
     out << "    call imprime_num\n";
     out << "    call sair\n";
     out << ".include \"x86-64-linux/runtime.s\"\n";
 }
 
-bool generate_assembly_file(const std::string& input_file_path, const Exp& tree,
-                            std::string& output_path) {
-    // Same convention as compilerci: every .s goes to "asm/", named after the
-    // input file with the extension swapped to .s.
+bool generate_assembly_file(const std::string& input_file_path, const Programa& programa,
+                             std::string& output_path) {
+    // Same convention as earlier activities: every .s goes to "asm/", named
+    // after the input file with the extension swapped to .s.
     static const std::string output_dir = "asm";
     std::filesystem::create_directories(output_dir);
 
@@ -80,6 +107,6 @@ bool generate_assembly_file(const std::string& input_file_path, const Exp& tree,
         std::cerr << "Error: Could not create output file " << output_path << std::endl;
         return false;
     }
-    generate_program(tree, out);
+    generate_program(programa, out);
     return true;
 }

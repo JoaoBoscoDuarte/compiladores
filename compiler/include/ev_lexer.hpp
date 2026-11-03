@@ -1,18 +1,21 @@
-#ifndef EC1_LEXER_HPP
-#define EC1_LEXER_HPP
+#ifndef EV_LEXER_HPP
+#define EV_LEXER_HPP
 
 #include <string>
 #include <vector>
 
-// Token classes for the EC1 language.
+// Token classes for the EV language.
 enum class TokenType {
     Numero,
+    Identificador,
     ParenEsq,
     ParenDir,
     Soma,
     Sub,
     Mult,
-    Div
+    Div,
+    PontoVirgula,
+    Igual
 };
 
 struct Token {
@@ -23,7 +26,8 @@ struct Token {
 
 std::string token_type_name(TokenType tipo);
 
-// Lexical error: an unrecognized character was found at a given position.
+// Lexical error: an unrecognized character was found at a given position
+// (also used for a number immediately followed by a letter, e.g. "237axy").
 struct LexError {
     size_t posicao;
     char caractere;

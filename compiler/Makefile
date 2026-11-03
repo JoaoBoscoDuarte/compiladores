@@ -5,15 +5,15 @@ SRC_DIR := src
 BIN_DIR := bin
 OBJ_DIR := obj
 
-EC1_TARGET := $(BIN_DIR)/ec1
-EC1_OBJS := $(OBJ_DIR)/ec1.o $(OBJ_DIR)/ec1_lexer.o $(OBJ_DIR)/ec1_parser.o $(OBJ_DIR)/ec1_codegen.o
+EV_TARGET := $(BIN_DIR)/ev
+EV_OBJS := $(OBJ_DIR)/ev.o $(OBJ_DIR)/ev_lexer.o $(OBJ_DIR)/ev_parser.o $(OBJ_DIR)/ev_semantic.o $(OBJ_DIR)/ev_codegen.o
 
 .PHONY: all clean
 
-all: $(EC1_TARGET)
+all: $(EV_TARGET)
 
-$(EC1_TARGET): $(EC1_OBJS) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(EC1_OBJS) -o $(EC1_TARGET)
+$(EV_TARGET): $(EV_OBJS) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(EV_OBJS) -o $(EV_TARGET)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@

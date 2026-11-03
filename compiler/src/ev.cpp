@@ -5,10 +5,11 @@
 #include <stdexcept>
 #include <string>
 
-#include "ec1_ast.hpp"
-#include "ec1_codegen.hpp"
-#include "ec1_lexer.hpp"
-#include "ec1_parser.hpp"
+#include "ev_ast.hpp"
+#include "ev_codegen.hpp"
+#include "ev_lexer.hpp"
+#include "ev_parser.hpp"
+#include "ev_semantic.hpp"
 
 static bool read_file(const std::string& path, std::string& content) {
     std::ifstream file(path);
@@ -23,11 +24,11 @@ static bool read_file(const std::string& path, std::string& content) {
 }
 
 static void print_usage(const char* prog) {
-    std::cerr << "Uso: " << prog << " [opcoes] <arquivo.ec1>\n"
+    std::cerr << "Uso: " << prog << " [opcoes] <arquivo.ev>\n"
               << "Opcoes (combinaveis; sem opcoes equivale a --asm):\n"
               << "  --tokens  imprime a sequencia de tokens\n"
-              << "  --tree    imprime a arvore sintatica\n"
-              << "  --eval    interpreta e imprime o valor da expressao\n"
+              << "  --tree    imprime a arvore sintatica (declaracoes + expressao final)\n"
+              << "  --eval    interpreta e imprime o valor da expressao final\n"
               << "  --asm     gera o assembly x86-64 em asm/<nome>.s\n";
 }
 
@@ -85,24 +86,39 @@ int main(int argc, char const* argv[]) {
     }
 
     // Analise sintatica.
-    std::unique_ptr<Exp> tree;
+    Programa programa;
     SyntaxError syntax_error;
-    if (!parse(tokens, tree, syntax_error)) {
+    if (!parse(tokens, programa, syntax_error)) {
         std::cerr << "Erro sintatico na posicao " << syntax_error.posicao
                   << ": " << syntax_error.mensagem << std::endl;
         return 1;
     }
 
+    // Analise semantica: toda variavel usada precisa ter sido declarada antes.
+    SemanticError semantic_error;
+    if (!check_program(programa, semantic_error)) {
+        std::cerr << "Erro semantico na posicao " << semantic_error.posicao
+                  << ": " << semantic_error.mensagem << std::endl;
+        return 1;
+    }
+
     if (opt_tree) {
         std::cout << "-- arvore --" << std::endl;
-        std::cout << tree->to_string() << std::endl;
+        for (const Decl& decl : programa.declaracoes) {
+            std::cout << decl.nome << " = " << decl.exp->to_string() << ";" << std::endl;
+        }
+        std::cout << "= " << programa.exp_final->to_string() << std::endl;
     }
 
     // Interpretacao.
     if (opt_eval) {
         std::cout << "-- resultado --" << std::endl;
         try {
-            std::cout << tree->eval() << std::endl;
+            Env env;
+            for (const Decl& decl : programa.declaracoes) {
+                env[decl.nome] = decl.exp->eval(env);
+            }
+            std::cout << programa.exp_final->eval(env) << std::endl;
         } catch (const std::runtime_error& e) {
             std::cerr << "Erro de execucao: " << e.what() << std::endl;
             return 1;
@@ -112,7 +128,7 @@ int main(int argc, char const* argv[]) {
     // Geracao de codigo.
     if (opt_asm) {
         std::string output_path;
-        if (!generate_assembly_file(input_path, *tree, output_path)) {
+        if (!generate_assembly_file(input_path, programa, output_path)) {
             return 1;
         }
         std::cout << "Successfully generated: " << output_path << std::endl;
