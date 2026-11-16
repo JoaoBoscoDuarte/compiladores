@@ -15,6 +15,10 @@ atv6/asm
 atv7/bin
 atv7/obj
 atv7/asm
+atv8/bin
+atv8/obj
+atv8/asm
+*.zip
 atv3/asm/*.o
 atv3/asm/expr1
 atv3/asm/expr2
