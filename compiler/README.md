@@ -2,78 +2,57 @@
 > x86-64 / Linux
 
 Compilador da disciplina, construído incrementalmente a cada atividade.
-`ev` (Atividades 4 a 7) — linguagem EV (expressões com variáveis):
-declarações `nome = exp;` seguidas de uma expressão final `= exp`,
-precedência/associatividade de operadores, análise léxica, sintática,
-semântica (tabela de símbolos, variável precisa ser declarada antes de
-usada) e geração de assembly x86-64.
+`cmd` (Atividades 4 a 8, estado atual: Atividade 8) — linguagem Cmd (EV + comandos), conforme o enunciado, sem
+alterações na sintaxe: declarações `nome = exp;`, um corpo `{ ... }` com
+comandos (`if`/`else` com `else` obrigatório, `while`, atribuição) e
+`return exp;`. Operadores `<`, `>` e `==` (precedência menor que `+`/`-`)
+resultam em 1 ou 0; zero é falso e qualquer outro valor é verdadeiro.
+Atribuir ou usar variável não declarada é erro semântico.
 
-A geração de código usa a pilha do sistema: o operando esquerdo é
-calculado e empilhado (`push %rax`), o direito é calculado e movido para
-`%rbx`, o esquerdo é desempilhado para `%rax` e a operação é feita (`add`,
-`sub`, `imul`, ou `cqo` + `idiv`). Só `%rax`, `%rbx` (e `%rdx` na divisão)
-são usados, e a pilha termina igual ao início, então funciona para
-expressões de qualquer tamanho. Variáveis são reservadas na seção `.bss`
-(`.lcomm <nome>, 8`) e lidas/escritas por nome em instruções `mov`.
+Geração de código: modelos do enunciado (`cmp`/`setl`/`setg`/`setz`,
+`jz`/`jmp` com rótulos `Lfalso<n>`, `Lfim<n>`, `Linicio<n>`). Variáveis ficam
+na `.bss` com prefixo `var_` (evita conflito com rótulos e símbolos do
+runtime). Divisão por zero não tem comportamento definido (como em EV).
 
-## Compilar
-
-### Via Makefile
+## Compilar o compilador
 
 ```sh
 make
 ```
 
-- Gera `bin/ev`.
-- `make clean` remove `bin/` e `obj/`.
-
-### Manual via `g++`
-
-```sh
-mkdir -p bin
-g++ -Wall -Wextra -std=c++17 -Iinclude src/ev.cpp src/ev_lexer.cpp src/ev_parser.cpp src/ev_semantic.cpp src/ev_codegen.cpp -o bin/ev
-```
+Gera `bin/cmd`. `make clean` remove `bin/` e `obj/`.
 
 ## Executar
 
 ```sh
-./bin/ev [--tokens] [--tree] [--eval] [--asm] <arquivo.ev>
+./bin/cmd [--tokens] [--tree] [--eval] [--asm] <arquivo.cmd>
 ```
 
-- `--tokens`: imprime a sequência de tokens.
-- `--tree`: imprime as declarações e a expressão final.
-- `--eval`: interpreta e imprime o valor da expressão final.
+- `--tokens`: sequência de tokens.
+- `--tree`: declarações, comandos (indentados) e expressão de retorno.
+- `--eval`: executa o programa no interpretador e imprime o valor retornado.
 - `--asm`: gera o assembly em `asm/<nome>.s` (padrão se nenhuma opção for dada).
 
-As opções podem ser combinadas. Erro léxico, sintático ou semântico
-(variável não declarada) termina a execução (código de saída 1) com a
-posição do erro.
-
-Para montar e executar o programa gerado (a partir desta pasta, pois o `.s`
-inclui `x86-64-linux/runtime.s` com caminho relativo à raiz):
+Erros léxicos, sintáticos e semânticos informam a posição e encerram com
+código 1. Para montar e executar o programa gerado (a partir desta pasta):
 
 ```sh
-./bin/ev tests/ev_perimetro.ev
-as --64 -o asm/ev_perimetro.o asm/ev_perimetro.s && ld -o asm/ev_perimetro asm/ev_perimetro.o
-./asm/ev_perimetro    # imprime 140
+./bin/cmd tests/cmd_mdc.cmd
+as --64 -o asm/cmd_mdc.o asm/cmd_mdc.s && ld -o asm/cmd_mdc asm/cmd_mdc.o
+./asm/cmd_mdc    # imprime 6
 ```
 
 ## Executar os testes
 
 ```sh
-# compila, monta, roda e compara com o interpretador (requer as/ld)
-./tests/run_ev_tests.sh
+make && ./tests/run_cmd_tests.sh
 ```
 
-O script também gera e valida expressões grandes (3000 operações
-aninhadas) e 30 expressões aleatórias (sem variáveis). Como a linguagem
-não define o comportamento de divisão por zero, uma eventual
-subexpressão aleatória que zere um divisor interno derruba o processo
-(`idiv` por zero causa `SIGFPE` tanto no binário montado quanto no
-interpretador) — o script detecta esses casos pelo código de saída do
-interpretador e pula a amostra; isso é uma limitação conhecida da
-geração aleatória de testes, não dos casos exigidos pelo enunciado (que
-passam todos).
+Compila, monta, executa e compara o resultado do assembly com o valor
+esperado e com o do interpretador (requer `as` e `ld`). Cobre os exemplos do
+enunciado, `if`/`while`/atribuição (aninhados, blocos vazios, laços longos),
+comparações e precedência, rejeição de erros léxicos, sintáticos e semânticos,
+programas grandes gerados e 40 programas aleatórios com comandos.
 
 ## Grupo
 - GUILHERME URTIGA LOPES SILVA
@@ -82,12 +61,8 @@ passam todos).
 
 ## Uso de LLM
 
-O assistente de IA (Claude Code) foi utilizado como suporte para o
-desenvolvimento do `Makefile`, organização da saída dos arquivos `.s` em uma
-pasta única (`asm/`), auxílio no entendimento dos conceitos de montagem/
-ligação do assembly x86-64, implementação do analisador léxico, sintático
-(descendente recursivo), análise semântica (tabela de símbolos) e
-interpretador da linguagem EV a partir do pseudocódigo e da gramática dos
-enunciados, e do gerador de código (esquema de tradução com pilha mais
-seção `.bss` para variáveis) e das opções de linha de comando do `ev`. O
-código foi revisado e testado pelo grupo.
+O assistente de IA (Claude Code) implementou a extensão do compilador EV
+para Cmd (novos tokens e palavras-chave, parser de comandos e comparações,
+análise semântica de atribuições, geração de código com rótulos e saltos,
+interpretador), os testes e esta documentação, a partir do enunciado e do
+código da Atividade 7 (consolidado aqui como versão atual). O grupo revisou e testou o resultado.

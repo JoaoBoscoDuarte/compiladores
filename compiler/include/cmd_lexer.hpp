@@ -1,21 +1,30 @@
-#ifndef EV_LEXER_HPP
-#define EV_LEXER_HPP
+#ifndef CMD_LEXER_HPP
+#define CMD_LEXER_HPP
 
 #include <string>
 #include <vector>
 
-// Token classes for the EV language.
+// Token classes for the Cmd language.
 enum class TokenType {
     Numero,
     Identificador,
     ParenEsq,
     ParenDir,
+    ChaveEsq,
+    ChaveDir,
     Soma,
     Sub,
     Mult,
     Div,
+    Menor,
+    Maior,
+    IgualIgual, // '==' (comparison)
     PontoVirgula,
-    Igual
+    Igual,      // '=' (declaration / assignment)
+    If,
+    Else,
+    While,
+    Return
 };
 
 struct Token {

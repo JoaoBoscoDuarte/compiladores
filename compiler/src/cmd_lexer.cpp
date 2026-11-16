@@ -1,4 +1,4 @@
-#include "ev_lexer.hpp"
+#include "cmd_lexer.hpp"
 #include <cctype>
 
 std::string token_type_name(TokenType tipo) {
@@ -7,12 +7,21 @@ std::string token_type_name(TokenType tipo) {
         case TokenType::Identificador: return "Identificador";
         case TokenType::ParenEsq:      return "ParenEsq";
         case TokenType::ParenDir:      return "ParenDir";
+        case TokenType::ChaveEsq:      return "ChaveEsq";
+        case TokenType::ChaveDir:      return "ChaveDir";
         case TokenType::Soma:          return "Soma";
         case TokenType::Sub:           return "Sub";
         case TokenType::Mult:          return "Mult";
         case TokenType::Div:           return "Div";
+        case TokenType::Menor:         return "Menor";
+        case TokenType::Maior:         return "Maior";
+        case TokenType::IgualIgual:    return "IgualIgual";
         case TokenType::PontoVirgula:  return "PontoVirgula";
         case TokenType::Igual:         return "Igual";
+        case TokenType::If:            return "If";
+        case TokenType::Else:          return "Else";
+        case TokenType::While:         return "While";
+        case TokenType::Return:        return "Return";
     }
     return "?";
 }
@@ -64,12 +73,30 @@ bool tokenize(const std::string& source, std::vector<Token>& tokens, LexError& e
             while (i < n && is_letra_digito(source[i])) {
                 i++;
             }
-            tokens.push_back({TokenType::Identificador, source.substr(start, i - start), start});
+            std::string lexema = source.substr(start, i - start);
+            // Keywords follow the identifier rules; test the lexeme first.
+            TokenType tipo = TokenType::Identificador;
+            if (lexema == "if") tipo = TokenType::If;
+            else if (lexema == "else") tipo = TokenType::Else;
+            else if (lexema == "while") tipo = TokenType::While;
+            else if (lexema == "return") tipo = TokenType::Return;
+            tokens.push_back({tipo, lexema, start});
+            continue;
+        }
+
+        // '=' followed by another '=' is the equality operator.
+        if (c == '=' && i + 1 < n && source[i + 1] == '=') {
+            tokens.push_back({TokenType::IgualIgual, "==", i});
+            i += 2;
             continue;
         }
 
         TokenType tipo;
         switch (c) {
+            case '{': tipo = TokenType::ChaveEsq; break;
+            case '}': tipo = TokenType::ChaveDir; break;
+            case '<': tipo = TokenType::Menor; break;
+            case '>': tipo = TokenType::Maior; break;
             case '(': tipo = TokenType::ParenEsq; break;
             case ')': tipo = TokenType::ParenDir; break;
             case '+': tipo = TokenType::Soma; break;

@@ -1,0 +1,2 @@
+x = 1;
+{ while z < 1 { x = 2; } return x; }

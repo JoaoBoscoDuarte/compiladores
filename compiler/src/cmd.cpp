@@ -5,11 +5,11 @@
 #include <stdexcept>
 #include <string>
 
-#include "ev_ast.hpp"
-#include "ev_codegen.hpp"
-#include "ev_lexer.hpp"
-#include "ev_parser.hpp"
-#include "ev_semantic.hpp"
+#include "cmd_ast.hpp"
+#include "cmd_codegen.hpp"
+#include "cmd_lexer.hpp"
+#include "cmd_parser.hpp"
+#include "cmd_semantic.hpp"
 
 static bool read_file(const std::string& path, std::string& content) {
     std::ifstream file(path);
@@ -24,11 +24,11 @@ static bool read_file(const std::string& path, std::string& content) {
 }
 
 static void print_usage(const char* prog) {
-    std::cerr << "Uso: " << prog << " [opcoes] <arquivo.ev>\n"
+    std::cerr << "Uso: " << prog << " [opcoes] <arquivo.cmd>\n"
               << "Opcoes (combinaveis; sem opcoes equivale a --asm):\n"
               << "  --tokens  imprime a sequencia de tokens\n"
-              << "  --tree    imprime a arvore sintatica (declaracoes + expressao final)\n"
-              << "  --eval    interpreta e imprime o valor da expressao final\n"
+              << "  --tree    imprime a arvore sintatica (declaracoes, comandos e expressao de retorno)\n"
+              << "  --eval    executa o programa e imprime o valor retornado\n"
               << "  --asm     gera o assembly x86-64 em asm/<nome>.s\n";
 }
 
@@ -94,7 +94,7 @@ int main(int argc, char const* argv[]) {
         return 1;
     }
 
-    // Analise semantica: toda variavel usada precisa ter sido declarada antes.
+    // Analise semantica: toda variavel usada ou atribuida precisa ter sido declarada antes.
     SemanticError semantic_error;
     if (!check_program(programa, semantic_error)) {
         std::cerr << "Erro semantico na posicao " << semantic_error.posicao
@@ -107,7 +107,12 @@ int main(int argc, char const* argv[]) {
         for (const Decl& decl : programa.declaracoes) {
             std::cout << decl.nome << " = " << decl.exp->to_string() << ";" << std::endl;
         }
-        std::cout << "= " << programa.exp_final->to_string() << std::endl;
+        std::cout << "{" << std::endl;
+        for (const auto& cmd : programa.comandos) {
+            cmd->print(std::cout, 2);
+        }
+        std::cout << "  return " << programa.exp_final->to_string() << ";" << std::endl;
+        std::cout << "}" << std::endl;
     }
 
     // Interpretacao.
@@ -117,6 +122,9 @@ int main(int argc, char const* argv[]) {
             Env env;
             for (const Decl& decl : programa.declaracoes) {
                 env[decl.nome] = decl.exp->eval(env);
+            }
+            for (const auto& cmd : programa.comandos) {
+                cmd->exec(env);
             }
             std::cout << programa.exp_final->eval(env) << std::endl;
         } catch (const std::runtime_error& e) {
