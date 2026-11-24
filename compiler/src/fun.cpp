@@ -1,3 +1,6 @@
+#include <sys/resource.h>
+#include <unistd.h>
+
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -10,6 +13,25 @@
 #include "fun_lexer.hpp"
 #include "fun_parser.hpp"
 #include "fun_semantic.hpp"
+
+// The interpreter recurses on the C++ stack, so deeply recursive Fun programs
+// (that run fine as assembly) would overflow the default 8 MB stack. Raise
+// the soft limit (up to 1 GB, or the hard limit) and re-execute once; after
+// the re-exec the limit is already high, so this does not loop.
+static void ensure_big_stack(char* const argv[]) {
+    const rlim_t want = rlim_t(1) << 30;
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_STACK, &rl) != 0 || rl.rlim_cur == RLIM_INFINITY || rl.rlim_cur >= want) {
+        return;
+    }
+    rlim_t novo = (rl.rlim_max == RLIM_INFINITY || rl.rlim_max >= want) ? want : rl.rlim_max;
+    if (novo > rl.rlim_cur) {
+        rl.rlim_cur = novo;
+        if (setrlimit(RLIMIT_STACK, &rl) == 0) {
+            execv("/proc/self/exe", argv);
+        }
+    }
+}
 
 static bool read_file(const std::string& path, std::string& content) {
     std::ifstream file(path);
@@ -61,6 +83,10 @@ int main(int argc, char const* argv[]) {
     }
     if (!opt_tokens && !opt_tree && !opt_eval && !opt_asm) {
         opt_asm = true;
+    }
+
+    if (opt_eval) {
+        ensure_big_stack(const_cast<char* const*>(argv));
     }
 
     std::string source;

@@ -139,6 +139,11 @@ awk 'BEGIN { printf "fun f("; for (i=0;i<50;i++) printf "%sp%d", (i?", ":""), i;
     printf "main { return f("; for (i=0;i<50;i++) printf "%s%d", (i?", ":""), i+1; print "); }" }' > "$OUT/fun_50_params.fun"
 check_valid "$OUT/fun_50_params.fun" 42925
 
+# recursao com 100000 niveis: soma(n) = n + soma(n-1) -> 5000050000 (o
+# interpretador amplia a pilha sozinho)
+awk 'BEGIN { print "fun soma(n) {\nvar r = 0;\nif n == 0 { r = 0; } else { r = n + soma(n - 1); }\nreturn r;\n}\nmain { return soma(100000); }" }' > "$OUT/fun_recursao_100k.fun"
+check_valid "$OUT/fun_recursao_100k.fun" 5000050000
+
 # Programas aleatorios: funcoes (aridade 0 a 3, com locais, chamando funcoes
 # anteriores e as vezes alterando globais) + main com if/while/atribuicao e
 # chamadas em expressoes (divisor sempre constante nao nula). O valor do
