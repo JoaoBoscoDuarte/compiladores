@@ -1,8 +1,0 @@
-m = 10;
-n = 4;
-{
-  while m + 1 > n {
-    m = m - n;
-  }
-  return m;
-}

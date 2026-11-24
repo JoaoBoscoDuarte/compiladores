@@ -5,15 +5,15 @@ SRC_DIR := src
 BIN_DIR := bin
 OBJ_DIR := obj
 
-CMD_TARGET := $(BIN_DIR)/cmd
-CMD_OBJS := $(OBJ_DIR)/cmd.o $(OBJ_DIR)/cmd_lexer.o $(OBJ_DIR)/cmd_parser.o $(OBJ_DIR)/cmd_semantic.o $(OBJ_DIR)/cmd_codegen.o
+FUN_TARGET := $(BIN_DIR)/fun
+FUN_OBJS := $(OBJ_DIR)/fun.o $(OBJ_DIR)/fun_lexer.o $(OBJ_DIR)/fun_parser.o $(OBJ_DIR)/fun_semantic.o $(OBJ_DIR)/fun_codegen.o
 
 .PHONY: all clean
 
-all: $(CMD_TARGET)
+all: $(FUN_TARGET)
 
-$(CMD_TARGET): $(CMD_OBJS) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(CMD_OBJS) -o $(CMD_TARGET)
+$(FUN_TARGET): $(FUN_OBJS) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(FUN_OBJS) -o $(FUN_TARGET)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
