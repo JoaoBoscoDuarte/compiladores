@@ -1,0 +1,2 @@
+var x = 3;
+main { return x(1); }

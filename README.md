@@ -11,3 +11,4 @@ pasta `atvN/` contém apenas o necessário para a entrega daquela atividade.
 - [`atv6/`](atv6) — Atividade 6: EC2, precedência e associatividade sem parênteses obrigatórios (autocontido).
 - [`atv7/`](atv7) — Atividade 7: EV, variáveis com análise semântica e tabela de símbolos (autocontido).
 - [`atv8/`](atv8) — Atividade 8: Cmd, comandos `if`/`while`/atribuição e comparações (autocontido).
+- [`atv9/`](atv9) — Atividade 9: Fun, funções com parâmetros, variáveis locais e recursão (autocontido).
